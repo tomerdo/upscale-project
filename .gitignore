@@ -11,7 +11,7 @@
 /ideaSDK
 /clionSDK
 /android-studio/sdk
-out/
+out
 /tmp
 /intellij
 workspace.xml
