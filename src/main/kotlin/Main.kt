@@ -1,61 +1,65 @@
 import kotlin.math.pow
 
-var example_a = "123"
-var example_b = "255"
-var example_c = "253"
-var example_d = "255"
-var allowing_suffix = "29"
-var CIDR_NOTATION_EXAMPLE = "$example_a.$example_b.$example_c.$example_d/$allowing_suffix"
+data class IPGroup(val a: String, val b: String, val c: String, val d: String)
+const val IPV4_BITS = 32
 
-var ALL_ADDRESSES = 2.0.pow(32)
-var filterAddress: IPGroup? = null
+private const val SLASH_DELIMITER = '/'
+private const val DOT_DELIMITER = "."
 
-data class IPGroup(val a: String,val b: String, val c: String, val d: String)
+class IPFilter(cidrNotation: String) {
+    private val ipAllowedGroup: IPGroup
+    private val groupMask: Long
+    private val addresses = 2.0.pow(IPV4_BITS)
+    private val classSize = 2.0.pow(IPV4_BITS / 4)
 
-fun fromABCDToNumber(ip: IPGroup): Long {
-    val (a, b, c, d) = ip
-    return (a.toInt() * 256.0.pow(3) + b.toInt() * 256.0.pow(2) + c.toInt() * 256 + d.toInt()).toLong()
-}
+    init {
+        val (prefixAddress, suffix) = cidrNotation.split(SLASH_DELIMITER)
+        val (a, b, c, d) = prefixAddress.split(DOT_DELIMITER)
+        val ipAsNumber = fromIPGroupToNumber(IPGroup(a = a, b = b, c = c, d = d))
+        groupMask = (addresses - 2.0.pow(IPV4_BITS - suffix.toInt())).toLong()
+        ipAllowedGroup = fromNumberToIPGroup(applyMask(ipAsNumber, groupMask))
 
-fun applyMask(base_address: Long, suffix: Int): Long{
-    return base_address and (ALL_ADDRESSES - 2.0.pow(32-suffix)).toLong()
-}
+    }
 
-fun fromNumberToABCD(num: Long): IPGroup {
-    var currNum = num
-    val d = (currNum % 256).toString()
-    currNum /= 256
-    val c = (currNum % 256).toString()
-    currNum /= 256
-    val b = (currNum % 256).toString()
-    currNum /= 256
-    val a = (currNum % 256).toString()
-    return IPGroup(a=a,b=b,c=c,d=d)
+    fun isAllowed(incomingIp: String): Boolean {
+        val (a, b, c, d) = incomingIp.split(DOT_DELIMITER)
+        val ipGroup = IPGroup(a = a, b = b, c = c, d = d)
+        val incomingIpAsNum = fromIPGroupToNumber(ipGroup)
+        val incomingIPAfterMask = fromNumberToIPGroup(applyMask(incomingIpAsNum, groupMask))
+        return incomingIPAfterMask == ipAllowedGroup
+    }
+
+    private fun applyMask(inputAddress: Long, mask: Long): Long {
+        return inputAddress and mask
+    }
+
+    private fun fromIPGroupToNumber(ip: IPGroup): Long {
+        val (a, b, c, d) = ip
+        return (a.toInt() * classSize.pow(3) + b.toInt() * classSize.pow(2) + c.toInt() * classSize + d.toInt()).toLong()
+    }
+
+    private fun fromNumberToIPGroup(num: Long): IPGroup {
+        var currNum = num
+        val classSizeAsInt = classSize.toInt()
+        val d = (currNum % classSizeAsInt).toString()
+        currNum /= classSizeAsInt
+        val c = (currNum % classSizeAsInt).toString()
+        currNum /= classSizeAsInt
+        val b = (currNum % classSizeAsInt).toString()
+        currNum /= classSizeAsInt
+        val a = (currNum % classSizeAsInt).toString()
+        return IPGroup(a = a, b = b, c = c, d = d)
+    }
 }
 
 fun main() {
-    val (prefix_address, suffix) = CIDR_NOTATION_EXAMPLE.split('/')
-    println(prefix_address)
-    println(suffix)
-    val (a, b, c, d) = prefix_address.split(".")
-    println("$a.$b.$c.$d")
-    val ip = IPGroup(a=a,b=b,c=c,d=d)
-    val ipAsNumber = fromABCDToNumber(ip)
-    println(ipAsNumber)
-    filterAddress = fromNumberToABCD(applyMask(base_address = ipAsNumber, suffix = suffix.toInt()))
-    print(filterAddress)
-    val checkForAddressValid = "123.255.253.255"
-    println("The $prefix_address allowed: ${isAllowed(checkForAddressValid)}")
-    val checkForAddressInvalid = "123.255.253.220"
-    println("The $prefix_address allowed: ${isAllowed(checkForAddressInvalid)}")
+    val cidrNotation = "192.255.253.255/30"
+    val ipFilter = IPFilter(cidrNotation)
+    val checkForAddressValid = "192.255.253.255"
+    val checkForAddressInvalid = "192.255.253.220"
+
+    println("$cidrNotation - Configured as the filter")
+    println("$checkForAddressValid allowed: ${ipFilter.isAllowed(checkForAddressValid)}")
+    println("$checkForAddressInvalid allowed: ${ipFilter.isAllowed(checkForAddressInvalid)}")
 }
 
-fun isAllowed(incomingIp: String): Boolean {
-    val (a, b, c, d) = incomingIp.split(".")
-    val ipGroup = IPGroup(a = a, b = b, c = c, d = d)
-    val incomingIpAsNum = fromABCDToNumber(ipGroup)
-    // TODO - part of the class the suffix
-    val incomingIPAfterMask = fromNumberToABCD(applyMask(incomingIpAsNum, allowing_suffix.toInt()))
-    println("incomingIPAfterMask: $incomingIPAfterMask")
-    return incomingIPAfterMask == filterAddress
-}
