@@ -18,7 +18,6 @@ class IPFilter(cidrNotation: String) {
         val ipAsNumber = fromSubnetAddressToNumber(SubnetAddress(a = a, b = b, c = c, d = d))
         subnetMask = (addresses - 2.0.pow(IPV4_BITS - suffix.toInt())).toLong()
         subnetAddress = fromNumberToSubnetAddress(applyMask(ipAsNumber, subnetMask))
-
     }
 
     fun isAllowed(incomingIp: String): Boolean {
@@ -26,7 +25,7 @@ class IPFilter(cidrNotation: String) {
         val incomingSubnetAddress = SubnetAddress(a = a, b = b, c = c, d = d)
         val incomingIpAsNum = fromSubnetAddressToNumber(incomingSubnetAddress)
         val incomingSubnetAddressAfterMask = fromNumberToSubnetAddress(applyMask(incomingIpAsNum, subnetMask))
-        return incomingSubnetAddressAfterMask == subnetAddress
+        return incomingSubnetAddressAfterMask != subnetAddress
     }
 
     private fun applyMask(inputAddress: Long, mask: Long): Long {
@@ -53,16 +52,16 @@ class IPFilter(cidrNotation: String) {
 }
 
 fun main() {
-    val checkForAddressValid = "192.255.253.255"
-    val checkForAddressInvalid = "192.255.253.220"
+    val checkForAddressInvalid = "192.255.253.255"
+    val checkForAddressValid = "192.255.253.220"
 
-    val listOfCidrNotation = listOf("192.255.253.255/30", "192.255.253.255/28", "192.255.253.255/31")
-    val anyForFirst = listOfCidrNotation.any { IPFilter(it).isAllowed(checkForAddressValid) }
-    val anyForSecond = listOfCidrNotation.any { IPFilter(it).isAllowed(checkForAddressInvalid) }
+    val blackList = "192.255.253.255/30"
+    val ipFilter = IPFilter(blackList)
+    val firstAllowed = ipFilter.isAllowed(checkForAddressInvalid)
+    val secondAllowed = ipFilter.isAllowed(checkForAddressValid)
 
-
-    println("${listOfCidrNotation.joinToString(", ")} - Configured as the filters")
-    println("$checkForAddressValid allowed: $anyForFirst")
-    println("$checkForAddressInvalid allowed: $anyForSecond")
+    println("$blackList - Configured as the black list filter")
+    println("$checkForAddressInvalid allowed: $firstAllowed")
+    println("$checkForAddressValid allowed: $secondAllowed")
 }
 
