@@ -52,16 +52,15 @@ class IPFilter(cidrNotation: String) {
 }
 
 fun main() {
-    val checkForAddressInvalid = "192.255.253.255"
-    val checkForAddressValid = "192.255.253.220"
+    val checkForAddressNotAllowed = "192.255.253.255"
+    val checkForAddressAllowed = "192.255.253.220"
 
-    val blackList = "192.255.253.255/30"
-    val ipFilter = IPFilter(blackList)
-    val firstAllowed = ipFilter.isAllowed(checkForAddressInvalid)
-    val secondAllowed = ipFilter.isAllowed(checkForAddressValid)
+    val blackList = listOf("192.255.253.255/30", "192.255.253.154/29", "192.255.253.225/30")
+    val firstAllowed = blackList.all {IPFilter(it).isAllowed(checkForAddressNotAllowed)}
+    val secondAllowed = blackList.all {IPFilter(it).isAllowed(checkForAddressAllowed)}
 
-    println("$blackList - Configured as the black list filter")
-    println("$checkForAddressInvalid allowed: $firstAllowed")
-    println("$checkForAddressValid allowed: $secondAllowed")
+    println("${blackList.joinToString(", ")} - Configured as the black list filter")
+    println("$checkForAddressNotAllowed allowed: $firstAllowed")
+    println("$checkForAddressAllowed allowed: $secondAllowed")
 }
 
